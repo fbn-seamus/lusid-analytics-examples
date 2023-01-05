@@ -16,7 +16,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument, ModelOptions? _ = null)
         {
             // The price of a swaption depends on its swap underlying which in turn
             // itself is determined by the price of the fixed leg and floating leg.

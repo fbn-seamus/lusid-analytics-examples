@@ -17,7 +17,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument bond)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument bond, ModelOptions? _ = null)
         {
             if (model != ModelSelection.ModelEnum.ConstantTimeValueOfMoney)
             {

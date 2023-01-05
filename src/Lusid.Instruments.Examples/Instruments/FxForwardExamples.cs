@@ -17,7 +17,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument, ModelOptions? _ = null)
         {
             // POPULATE with required market data for valuation of the instruments
             var upsertFxRateRequestReq = TestDataUtilities.BuildFxRateRequest("USD", "JPY", 150, TestDataUtilities.EffectiveAt, TestDataUtilities.EffectiveAt);

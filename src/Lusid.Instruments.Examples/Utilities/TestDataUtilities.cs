@@ -466,6 +466,36 @@ namespace Lusid.Instruments.Examples.Utilities
         }
 
         /// <summary>
+        /// A simple example of an equity forward curve with a given price at the start date and rising by 1% per annum
+        /// over ten years
+        /// </summary>
+        public static UpsertComplexMarketDataRequest EquityForwardCurve(
+            DateTimeOffset effectiveAt,
+            LusidInstrument option,
+            decimal startPrice = 100m)
+        {
+            var dates = from i in Enumerable.Range(0, 11) select effectiveAt.AddYears(i); 
+            var prices = from i in Enumerable.Range(0, 11) select startPrice * (decimal)Math.Pow(1.01, i);
+            var equityCurve = new EquityCurveByPricesData(
+                baseDate: effectiveAt, 
+                dates: dates.ToList(),
+                prices: prices.ToList(), 
+                
+                lineage: "test data",
+                marketDataType: ComplexMarketData.MarketDataTypeEnum.EquityCurveByPricesData);
+
+            var marketAsset = "EquityCurveByPrices";
+
+            var complexMarketDataId = new ComplexMarketDataId(
+                provider: "Lusid",
+                effectiveAt: effectiveAt.ToString("o"),
+                marketAsset: marketAsset);
+
+            var upsertRequest = new UpsertComplexMarketDataRequest(complexMarketDataId, equityCurve);
+            return upsertRequest;
+        }
+        
+        /// <summary>
         /// This method creates a recipe and wraps it up into an UpsertRecipeRequest.
         /// It consists of rules capable of finding both simple quote and complex market data for a range of instruments.
         /// If windowValuationOnInstrumentStartEnd is true, this sets the price of instruments to be zero after maturity
@@ -476,7 +506,8 @@ namespace Lusid.Instruments.Examples.Utilities
             string recipeCode,
             string scope,
             ModelSelection.ModelEnum model,
-            bool windowValuationOnInstrumentStartEnd = false)
+            bool windowValuationOnInstrumentStartEnd = false,
+            List<VendorModelRule>? vendorModelRules = null)
         {
             // For simpleStaticRule, note that inside CreatePortfolioAndInstrument, the method TestDataUtilities.BuildInstrumentUpsertRequest books the instrument using "ClientInternal".
             // As such the quote upserted using "ClientInternal". The market rule key needs to be "ClientInternal" also to find the quote.
@@ -564,7 +595,7 @@ namespace Lusid.Instruments.Examples.Utilities
                 market: new MarketContext(
                     marketRules: new List<MarketDataKeyRule>{simpleStaticRule, figiRule, resetRule, creditRule, ratesRule, projectionRule, irVolRule},
                     options: new MarketOptions(defaultSupplier: "Lusid", defaultScope: scope, defaultInstrumentCodeType: "RIC")),
-                pricing: new PricingContext(options: pricingOptions),
+                pricing: new PricingContext(modelRules: vendorModelRules ?? new List<VendorModelRule>(), options: pricingOptions),
                 description: $"Recipe for {model} pricing");
 
             return new UpsertRecipeRequest(recipe);
@@ -597,6 +628,7 @@ namespace Lusid.Instruments.Examples.Utilities
                 }
 
                 Assert.That(pv, Is.Not.EqualTo(0).Within(1e-8));
+                Console.WriteLine($"PV: {pv}");
 
                 // Some instruments have pv that is equal or greater than zero (some can be negative).
                 // We check the positivity of pv for relevant instruments.

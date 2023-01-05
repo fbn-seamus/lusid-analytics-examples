@@ -9,7 +9,7 @@ namespace Lusid.Instruments.Examples.Utilities
         /// Creates and upsert market data to LUSID required to price the instrument.
         /// Each inheritor is for a different instrument type and hence requires different set of market data.
         /// </summary>
-        protected abstract void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument);
+        protected abstract void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument, ModelOptions? modelOptions = null);
 
         /// <summary>
         /// In order to price some instruments need resets. This is typically those with interest rate payments such as equity or interest rate swaps
@@ -34,7 +34,7 @@ namespace Lusid.Instruments.Examples.Utilities
             var (instrumentID, portfolioCode) = CreatePortfolioAndInstrument(scope, instrument);
 
             // UPSERT sufficient market data to get cashflow for the instrument
-            CreateAndUpsertMarketDataToLusid(scope, model, instrument);
+            CreateAndUpsertMarketDataToLusid(scope, model, instrument, new EmptyModelOptions());
 
             // UPSERT recipe - this is the configuration used in pricing
             var recipeCode = CreateAndUpsertRecipe(scope, model);
@@ -55,10 +55,11 @@ namespace Lusid.Instruments.Examples.Utilities
         protected string CreateAndUpsertRecipe(
             string scope,
             ModelSelection.ModelEnum model,
-            bool windowValuationOnInstrumentStartEnd = false)
+            bool windowValuationOnInstrumentStartEnd = false,
+            List<VendorModelRule>? vendorModelRules = null)
         {
             var recipeCode = Guid.NewGuid().ToString();
-            var recipeReq = TestDataUtilities.BuildRecipeRequest(recipeCode, scope, model, windowValuationOnInstrumentStartEnd);
+            var recipeReq = TestDataUtilities.BuildRecipeRequest(recipeCode, scope, model, windowValuationOnInstrumentStartEnd, vendorModelRules);
             var response = _recipeApi.UpsertConfigurationRecipe(recipeReq);
             Assert.That(response.Value, Is.Not.Null);
             return recipeCode;
@@ -115,7 +116,8 @@ namespace Lusid.Instruments.Examples.Utilities
             LusidInstrument instrument,
             ModelSelection.ModelEnum model,
             string instrumentID,
-            string scope)
+            string scope,
+            ModelOptions? modelOptions = null)
         {
             if (model == ModelSelection.ModelEnum.SimpleStatic)
             {
@@ -141,7 +143,7 @@ namespace Lusid.Instruments.Examples.Utilities
             }
             else // upsert complex market data
             {
-                CreateAndUpsertMarketDataToLusid(scope, model, instrument);
+                CreateAndUpsertMarketDataToLusid(scope, model, instrument, modelOptions);
             }
         }
 
@@ -149,7 +151,7 @@ namespace Lusid.Instruments.Examples.Utilities
         /// Perform a valuation of a portfolio consisting of the instrument.
         /// In the below code, we create a portfolio and book the instrument onto the portfolio via a transaction.
         /// </summary>
-        internal void CallLusidGetValuationEndpoint(LusidInstrument instrument, ModelSelection.ModelEnum model)
+        internal void CallLusidGetValuationEndpoint(LusidInstrument instrument, ModelSelection.ModelEnum model, ModelOptions modelOptions = null)
         {
             var scope = Guid.NewGuid().ToString();
 
@@ -157,10 +159,16 @@ namespace Lusid.Instruments.Examples.Utilities
             var (instrumentID, portfolioCode) = CreatePortfolioAndInstrument(scope, instrument);
 
             // UPSERT market data sufficient to price the instrument depending on the model.
-            UpsertMarketDataForInstrument(instrument, model, instrumentID, scope);
+            UpsertMarketDataForInstrument(instrument, model, instrumentID, scope, modelOptions);
 
             // CREATE recipe to price the portfolio with
-            var recipeCode = CreateAndUpsertRecipe(scope, model);
+            List<VendorModelRule>? vendorModelRules = null;
+            if (modelOptions is EquityModelOptions equityModelOptions &&
+                equityModelOptions.EquityForwardProjectionType == "EquityCurveByPrices")
+            {
+                vendorModelRules = new List<VendorModelRule>() {new VendorModelRule(VendorModelRule.SupplierEnum.Lusid, model.ToString(), instrument.InstrumentType.ToString(), modelOptions: equityModelOptions)};
+            }
+            var recipeCode = CreateAndUpsertRecipe(scope, model, vendorModelRules:vendorModelRules);
 
             // CREATE valuation request
             var valuationRequest = TestDataUtilities.CreateValuationRequest(scope, portfolioCode, recipeCode, TestDataUtilities.EffectiveAt);

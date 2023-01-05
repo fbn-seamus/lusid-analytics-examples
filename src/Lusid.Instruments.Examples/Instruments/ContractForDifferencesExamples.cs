@@ -15,7 +15,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope,ModelSelection.ModelEnum model, LusidInstrument cfd)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope,ModelSelection.ModelEnum model, LusidInstrument cfd, ModelOptions? _ = null)
         {
             var equityRequest = TestDataUtilities.BuildEquityQuoteRequest(
                 instrumentId: "some-id",

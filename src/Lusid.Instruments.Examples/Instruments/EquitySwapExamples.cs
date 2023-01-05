@@ -64,7 +64,7 @@ namespace Lusid.Instruments.Examples.Instruments
             Assert.That(upsertResponse.Values.Count, Is.EqualTo(quotesToUpsert.Count));        }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument, ModelOptions? _ = null)
         {
             // Any required resets.
             CreateAndUpsertInstrumentResetsToLusid(scope, model, instrument);

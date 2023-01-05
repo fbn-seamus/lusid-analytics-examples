@@ -16,7 +16,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument, ModelOptions? _ = null)
         {
             // Nothing to upsert specifically for Futures.
         }

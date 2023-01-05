@@ -50,7 +50,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument instrument, ModelOptions? _ = null)
         {
             // The price of a swap is determined by the price of the fixed leg and floating leg.
             // The price of a floating leg is determined by historic resets rates and projected rates.

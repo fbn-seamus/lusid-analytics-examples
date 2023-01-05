@@ -17,7 +17,7 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         /// <inheritdoc />
-        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument option)
+        protected override void CreateAndUpsertMarketDataToLusid(string scope, ModelSelection.ModelEnum model, LusidInstrument option, ModelOptions modelOptions)
         {
             // UPSERT quote for pricing of the equity option. This quote is understood to be the reset price.
             // In other words, this is the price of the underlying at the expiration of the equity option.
@@ -68,6 +68,12 @@ namespace Lusid.Instruments.Examples.Instruments
             if (model == ModelSelection.ModelEnum.Bachelier)
             {
                 upsertComplexMarketDataRequest.Add("BachelierVolSurface", TestDataUtilities.ConstantVolatilitySurfaceRequest(TestDataUtilities.EffectiveAt, option, model, 10m));
+            }
+
+            if (modelOptions is EquityModelOptions equityModelOptions &&
+                equityModelOptions.EquityForwardProjectionType == "EquityCurveByPrices")
+            {
+                upsertComplexMarketDataRequest.Add("EquityCurve", TestDataUtilities.EquityForwardCurve(TestDataUtilities.EffectiveAt, option, 135m));
             }
 
             if(upsertComplexMarketDataRequest.Any())
@@ -141,18 +147,22 @@ namespace Lusid.Instruments.Examples.Instruments
         }
 
         [LusidFeature("F22-8")]
-        [TestCase(ModelSelection.ModelEnum.ConstantTimeValueOfMoney, false)]
-        [TestCase(ModelSelection.ModelEnum.Discounting, false)]
-        [TestCase(ModelSelection.ModelEnum.Bachelier, false)]
-        [TestCase(ModelSelection.ModelEnum.BlackScholes, false)]
-        [TestCase(ModelSelection.ModelEnum.ConstantTimeValueOfMoney, true)]
-        [TestCase(ModelSelection.ModelEnum.Discounting, true)]
-        [TestCase(ModelSelection.ModelEnum.Bachelier, true)]
-        [TestCase(ModelSelection.ModelEnum.BlackScholes, true)]
-        public void EquityOptionValuationExample(ModelSelection.ModelEnum model, bool isCashSettled)
+        [TestCase(ModelSelection.ModelEnum.ConstantTimeValueOfMoney, false, null)]
+        [TestCase(ModelSelection.ModelEnum.Discounting, false, null)]
+        [TestCase(ModelSelection.ModelEnum.Bachelier, false, null)]
+        [TestCase(ModelSelection.ModelEnum.BlackScholes, false, null)]
+        [TestCase(ModelSelection.ModelEnum.ConstantTimeValueOfMoney, true, null)]
+        [TestCase(ModelSelection.ModelEnum.Discounting, true, null)]
+        [TestCase(ModelSelection.ModelEnum.Bachelier, true, null)]
+        [TestCase(ModelSelection.ModelEnum.BlackScholes, true, null)]
+        [TestCase(ModelSelection.ModelEnum.BlackScholes, true, "EquityCurveByPrices")]
+        public void EquityOptionValuationExample(ModelSelection.ModelEnum model, bool isCashSettled, string? forwardProjectionType)
         {
             var equityOption = InstrumentExamples.CreateExampleEquityOption(isCashSettled);
-            CallLusidGetValuationEndpoint(equityOption, model);
+            var equityModelOptions = forwardProjectionType == null 
+                ? null 
+                : new EquityModelOptions(forwardProjectionType, ModelOptions.ModelOptionsTypeEnum.EquityModelOptions);
+            CallLusidGetValuationEndpoint(equityOption, model, equityModelOptions);
         }
 
         [LusidFeature("F22-9")]
@@ -215,7 +225,7 @@ namespace Lusid.Instruments.Examples.Instruments
             var (instrumentID, portfolioCode) = CreatePortfolioAndInstrument(scope, equityOption);
 
             // UPSERT EquityOption to portfolio and populating stores with required market data.
-            CreateAndUpsertMarketDataToLusid(scope, model, equityOption);
+            CreateAndUpsertMarketDataToLusid(scope, model, equityOption, null);
 
             // CREATE recipe to price the portfolio with
             var recipeCode = CreateAndUpsertRecipe(scope, model, windowValuationOnInstrumentStartEnd: true);
@@ -319,7 +329,7 @@ namespace Lusid.Instruments.Examples.Instruments
             var (instrumentID, portfolioCode) = CreatePortfolioAndInstrument(scope, equityOption);
 
             // UPSERT EquityOption to portfolio and populating stores with required market data.
-            CreateAndUpsertMarketDataToLusid(scope, model, equityOption);
+            CreateAndUpsertMarketDataToLusid(scope, model, equityOption, null);
 
             // CREATE recipe to price the portfolio with
             var recipeCode = CreateAndUpsertRecipe(scope, model, windowValuationOnInstrumentStartEnd: true);
@@ -435,7 +445,7 @@ namespace Lusid.Instruments.Examples.Instruments
             var recipeCode = CreateAndUpsertRecipe(scope, model);
 
             // UPSERT market data sufficient to price the instrument
-            CreateAndUpsertMarketDataToLusid(scope, model, instrument);
+            CreateAndUpsertMarketDataToLusid(scope, model, instrument, null);
 
             // CREATE valuation request
             var valuationSchedule = new ValuationSchedule(effectiveAt: TestDataUtilities.EffectiveAt);
